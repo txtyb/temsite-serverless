@@ -1,3 +1,4 @@
 .vercel
 **/__pycache__
-
+**/set_env.bat
+**/set_env.ps1

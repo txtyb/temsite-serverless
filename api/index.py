@@ -1,8 +1,13 @@
 from flask import Flask, request, jsonify
 from time import time
-import json
+import json, redis, os
+
+REDIS_HOST = os.environ['REDIS_HOST']
+REDIS_PORT = os.environ['REDIS_PORT']
+REDIS_PASSWD = os.environ['REDIS_PASSWD']
 
 # DEBUG = True
+r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWD)
 
 app = Flask(__name__)
 
@@ -25,26 +30,43 @@ def put():
     [data['time'], data['tem'], data['rh']] = [timestamp, tem, rh]
     # print(data)
 
-    dump = list()
-    with open('data.json', 'r') as f:
-        try:
-            old = json.loads(f.read())
+    nowdata = list()
+    try:
+        oldjson = r.get('data').decode('utf-8')
+        old = json.loads(oldjson)
+        # id only have one data
+        if type(old) == dict:
+            olddict = old
+            old = list()
+            old.append(olddict)
             old.append(data)
-        except json.JSONDecodeError:
-            pass
-    dump = old
-    with open('data.json', 'w') as f:
-        f.write(json.dumps(dump, indent=4))
-
-    return jsonify(data)
+        else:
+            old.append(data)
+    # if empty
+    except AttributeError:
+        old = data
+    
+    nowdata = old
+    r.set('data', json.dumps(nowdata))
+    
+    return jsonify(nowdata)
 
 
 @app.route('/api/get', methods=['GET'])
 def get():
     data = list()
-    with open('data.json', 'r') as f:
-        data = json.loads(f.read())
+    try:
+        jsondata = r.get('data').decode('utf-8')
+    except AttributeError:
+        return "Empty"
+    data = json.loads(jsondata)
     return jsonify(data)
+
+
+@app.route('/api/del', methods=['GET'])
+def deldata():
+    r.delete('data')
+    return 'OK'
 
 
 if __name__ == "__main__": 
