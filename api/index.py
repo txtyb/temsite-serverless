@@ -49,7 +49,7 @@ def put():
     nowdata = old
     r.set('data', json.dumps(nowdata))
     
-    return jsonify(nowdata)
+    return jsonify(data)
 
 
 @app.route('/api/get', methods=['GET'])
