@@ -84,5 +84,17 @@ def gettem():
     return temdata
 
 
+@app.route('/api/getrh', methods=['GET'])
+def getrh():
+    jsondata = r.get('data').decode('utf-8')
+    data = json.loads(jsondata)
+    rhdata = str()
+    rhlist = list()
+    for i in data:
+        rhlist.append([i['time'], i['rh']])
+    rhdata = repr(rhlist)
+    return rhdata
+
+
 if __name__ == "__main__": 
     app.run()
