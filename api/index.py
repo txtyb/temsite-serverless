@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS, cross_origin
 from time import time
+from datetime import datetime, timedelta, timezone
 import json, redis, os
+
 
 REDIS_HOST = os.environ['REDIS_HOST']
 REDIS_PORT = os.environ['REDIS_PORT']
@@ -13,6 +15,13 @@ r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWD)
 app = Flask(__name__)
 
 cors = CORS(app)
+
+# convert datetime from timestamp to '2020-1-1 11:11:11 +0800' etc.
+def to_datetime(timestamp, tz=8):
+    tz = timezone(timedelta(hours=tz))
+    datetimestr = datetime.strftime(datetime.fromtimestamp(timestamp, tz=tz), '%Y-%m-%d %H:%M:%S %z')
+    return datetimestr
+
 
 @app.route('/test')
 def test():
@@ -58,11 +67,18 @@ def put():
 @app.route('/api/get', methods=['GET'])
 def get():
     data = list()
+    # return n couples of data, default 50
+    n = 50
+    if request.args.get('n', type=int):
+        n = request.args.get('n', type=int)
     try:
         jsondata = r.get('data').decode('utf-8')
     except AttributeError:
-        return "Empty"
+        return 'Empty'
     data = json.loads(jsondata)
+
+    if n < len(data):
+        data = data[-n:]
     return jsonify(data)
 
 
@@ -74,24 +90,48 @@ def deldata():
 
 @app.route('/api/gettem', methods=['GET'])
 def gettem():
-    jsondata = r.get('data').decode('utf-8')
+    jsondata = get().data
+    if jsondata == 'Empty':
+        return jsondata
     data = json.loads(jsondata)
+
+    # whether to return timestamp
+    ts = False
+    if request.args.get('ts', type=str) in {'true', 'True', '1'}:
+        ts = True
+
     temdata = str()
-    tmplist = list()
+    temlist = list()
     for i in data:
-        tmplist.append([i['time'], i['tem']])
-    temdata = repr(tmplist)
+        if ts:
+            time = i['time']
+        else:
+            time = to_datetime(i['time'])
+        temlist.append([time, i['tem']])
+    temdata = repr(temlist)
     return temdata
 
 
 @app.route('/api/getrh', methods=['GET'])
 def getrh():
-    jsondata = r.get('data').decode('utf-8')
+    jsondata = get().data
+    if jsondata == 'Empty':
+        return jsondata
     data = json.loads(jsondata)
+
+    # whether to return timestamp
+    ts = False
+    if request.args.get('ts', type=str) in {'true', 'True', '1'}:
+        ts = True
+        
     rhdata = str()
     rhlist = list()
     for i in data:
-        rhlist.append([i['time'], i['rh']])
+        if ts:
+            time = i['time']
+        else:
+            time = to_datetime(i['time'])
+        rhlist.append([time, i['rh']])
     rhdata = repr(rhlist)
     return rhdata
 
