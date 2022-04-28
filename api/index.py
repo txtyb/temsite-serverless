@@ -90,9 +90,10 @@ def deldata():
 
 @app.route('/api/gettem', methods=['GET'])
 def gettem():
-    jsondata = get().data
-    if jsondata == 'Empty':
-        return jsondata
+    try:
+        jsondata = get().data
+    except AttributeError:
+        return jsonify([])
     data = json.loads(jsondata)
 
     # whether to return timestamp
@@ -114,9 +115,10 @@ def gettem():
 
 @app.route('/api/getrh', methods=['GET'])
 def getrh():
-    jsondata = get().data
-    if jsondata == 'Empty':
-        return jsondata
+    try:
+        jsondata = get().data
+    except AttributeError:
+        return jsonify([])
     data = json.loads(jsondata)
 
     # whether to return timestamp
