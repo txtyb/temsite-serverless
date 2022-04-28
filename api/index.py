@@ -100,7 +100,7 @@ def gettem():
     if request.args.get('ts', type=str) in {'true', 'True', '1'}:
         ts = True
 
-    temdata = str()
+    # temdata = str()
     temlist = list()
     for i in data:
         if ts:
@@ -108,8 +108,8 @@ def gettem():
         else:
             time = to_datetime(i['time'])
         temlist.append([time, i['tem']])
-    temdata = repr(temlist)
-    return temdata
+    # temdata = repr(temlist)
+    return jsonify(temlist)
 
 
 @app.route('/api/getrh', methods=['GET'])
@@ -124,7 +124,7 @@ def getrh():
     if request.args.get('ts', type=str) in {'true', 'True', '1'}:
         ts = True
         
-    rhdata = str()
+    # rhdata = str()
     rhlist = list()
     for i in data:
         if ts:
@@ -132,8 +132,8 @@ def getrh():
         else:
             time = to_datetime(i['time'])
         rhlist.append([time, i['rh']])
-    rhdata = repr(rhlist)
-    return rhdata
+    # rhdata = repr(rhlist)
+    return jsonify(rhlist)
 
 
 if __name__ == "__main__": 
