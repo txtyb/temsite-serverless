@@ -46,7 +46,7 @@ def put():
     try:
         oldjson = r.get('data').decode('utf-8')
         old = json.loads(oldjson)
-        # id only have one data
+        # if only have one data
         if type(old) == dict:
             olddict = old
             old = list()
@@ -94,6 +94,7 @@ def get():
 @app.route('/api/del', methods=['GET'])
 def deldata():
     r.delete('data')
+    r.delete('warningindex')
     return 'OK'
 
 
@@ -145,6 +146,32 @@ def getrh():
         rhlist.append([time, i['rh']])
     # rhdata = repr(rhlist)
     return jsonify(rhlist)
+
+
+# return a list of indexes, the data with these indexes should be highlighted
+# exp: [0, 3, 5]
+@app.route('/api/warningindex', methods=['GET'])
+def warningindex():
+    setValue = request.args.get('set', type=int)
+    # set
+    if setValue:
+        try:
+            oldjson = r.get('warningindex').decode('utf-8')
+            data1 = json.loads(oldjson)
+        except AttributeError:
+            data1 = list()
+        data1.append(setValue)
+        r.set('warningindex', json.dumps(data1))
+        return jsonify(setValue)
+    # read
+    else:
+        data = list()
+        try:
+            jsondata = r.get('warningindex').decode('utf-8')
+        except AttributeError:
+            return 'Empty'
+        data = json.loads(jsondata)
+        return jsonify(data)
 
 
 if __name__ == "__main__": 
