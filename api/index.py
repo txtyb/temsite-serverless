@@ -1,8 +1,9 @@
+from urllib import response
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS, cross_origin
 from time import time
 from datetime import datetime, timedelta, timezone
-import json, redis, os
+import json, redis, os, requests
 
 
 REDIS_HOST = os.environ['REDIS_HOST']
@@ -172,6 +173,18 @@ def warningindex():
             return 'Empty'
         data = json.loads(jsondata)
         return jsonify(data)
+
+
+@app.route('/api/sendtofcm', methods=['POST'])
+def sendtofcm():
+    url = 'https://fcm.googleapis.com/fcm/send'
+    body = request.json
+    authorization = request.headers.get('Authorization', type=str)
+    headers = {
+        'Authorization': authorization
+    }
+    response = requests.post(url, headers=headers, json=body)
+    return jsonify(response.text), response.status_code
 
 
 if __name__ == "__main__": 
