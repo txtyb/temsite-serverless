@@ -166,9 +166,7 @@ def get():
     if request.args.get('ts', type=str) in {'False', 'false', '0'}:
         ts = False
     # return n couples of data, default 50
-    n = 50
-    if request.args.get('n', type=int):
-        n = request.args.get('n', type=int)
+    n = request.args.get('n', type=int, default=None)
 
     jsondata = r.get('data')
     if jsondata is None:
@@ -177,8 +175,9 @@ def get():
 
     data = json.loads(jsondata)
 
-    if n < len(data):
-        data = data[-n:]
+    if n:
+        if n < len(data):
+            data = data[-n:]
     
     # change timestamp to datetime if not ts
     if not ts:
