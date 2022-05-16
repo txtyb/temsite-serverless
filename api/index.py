@@ -1,4 +1,3 @@
-from urllib import response
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS, cross_origin
 from time import time
@@ -40,7 +39,7 @@ def put():
     tem = request.args.get('tem', type=float)
     rh = request.args.get('rh', type=float)
     timestamp = int(time())
-    [data['time'], data['tem'], data['rh']] = [timestamp, tem, rh]
+    [data['time'], data['tem'], data['rh'], data['warning']] = [timestamp, tem, rh, 0]
     # print(data)
     # if over the warning limit then post
     warningValues = r.get('warningValues')
@@ -59,6 +58,9 @@ def put():
                 rhFlag = 1
         
         if (temFlag or rhFlag):
+            # set data warning prop to 1
+            data['warning'] = 1
+            # send a warning notification
             sendtofcm(innerSend=1, rowDataTem=data['tem'], rowDataRh=data['rh'], datetime=to_datetime(timestamp), temFlag=temFlag, rhFlag=rhFlag, temWarningValue=temWarningValue, rhWarningValue=rhWarningValue)
 
     nowdata = list()
@@ -83,6 +85,34 @@ def put():
     return jsonify(data)
 
 
+def updateDataWarningProp(tem, rh):
+    jsondata = r.get('data')
+    if json is None:
+        return
+    else:
+        data = list()
+        jsondata = jsondata.decode('utf-8')
+        data = json.loads(jsondata)
+
+        for i in data:
+            if (tem and rh) is not None:
+                flag = ((i['tem'] >= tem) or (i['rh'] >= rh))
+            elif ((tem is None) and (rh is not None)):
+                flag = (i['rh'] >= rh)
+            elif ((rh is None) and (tem is not None)):
+                flag = (i['tem'] >= tem)
+            else:
+                flag = 0
+                
+            if flag:
+                i['warning'] = 1
+            else: 
+                i['warning'] = 0
+        
+        r.set('data', json.dumps(data))
+        return
+
+
 @app.route('/api/setWarningValues', methods=['GET'])
 def setWarningValues():
     tem = request.args.get('tem', type=float, default=None)
@@ -92,6 +122,10 @@ def setWarningValues():
         'rh': rh
     }
     r.set('warningValues', json.dumps(dictData))
+
+    # update data warning prop
+    updateDataWarningProp(tem, rh)
+
     return jsonify(dictData)
 
 
@@ -117,6 +151,10 @@ def getWarningValues():
 @app.route('/api/clearWarningValues', methods=['GET'])
 def clearWarningValues():
     r.delete('warningValues')
+
+    # update data warning prop
+    updateDataWarningProp(None, None)
+
     return 'OK'
 
 
@@ -131,10 +169,12 @@ def get():
     n = 50
     if request.args.get('n', type=int):
         n = request.args.get('n', type=int)
-    try:
-        jsondata = r.get('data').decode('utf-8')
-    except AttributeError:
+
+    jsondata = r.get('data')
+    if jsondata is None:
         return 'Empty'
+    jsondata = jsondata.decode('utf-8')
+
     data = json.loads(jsondata)
 
     if n < len(data):
@@ -204,13 +244,29 @@ def getrh():
     return jsonify(rhlist)
 
 
+# deprecated method
 # return a list of indexes, the data with these indexes should be highlighted
 # exp: [0, 3, 5]
-@app.route('/api/warningindex', methods=['GET'])
-def warningindex():
-    setValue = request.args.get('set', type=int)
+@app.route('/api/getWarningIndex', methods=['GET'])
+def getWarningIndex():
+    # read
+    data = list()
+
+    jsondata = r.get('warningindex')
+    if jsondata is None:
+        return 'Empty'
+    jsondata = jsondata.decode('utf-8')
+    
+    data = json.loads(jsondata)
+    return jsonify(data)
+
+
+# deprecated method
+@app.route('/api/setWarningIndex', methods=['GET'])
+def setWarningIndex():
+    setValue = request.args.get('set', type=int, default=None)
     # set
-    if setValue:
+    if setValue is not None:
         try:
             oldjson = r.get('warningindex').decode('utf-8')
             data1 = json.loads(oldjson)
@@ -219,15 +275,13 @@ def warningindex():
         data1.append(setValue)
         r.set('warningindex', json.dumps(data1))
         return jsonify(setValue)
-    # read
-    else:
-        data = list()
-        try:
-            jsondata = r.get('warningindex').decode('utf-8')
-        except AttributeError:
-            return 'Empty'
-        data = json.loads(jsondata)
-        return jsonify(data)
+
+
+# deprecated method
+@app.route('/api/clearWarningIndex', methods=['GET'])
+def clearWarningIndex():
+    r.delete('warningindex')
+    return 'OK'
 
 
 @app.route('/api/sendtofcm', methods=['POST'])
